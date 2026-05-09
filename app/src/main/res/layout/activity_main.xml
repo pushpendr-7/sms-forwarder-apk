@@ -36,7 +36,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="App ko sahi se kaam karne ke liye yeh permissions zaroori hain. Bina permissions ke app start nahi hoga."
+                android:text="App ko sahi se kaam karne ke liye yeh permissions zaroori hain."
                 android:textSize="14sp"
                 android:textColor="#555555"
                 android:gravity="center"
@@ -55,10 +55,10 @@
                     android:text="✓  SMS Read &amp; Receive" android:textSize="14sp" android:textColor="#333333"
                     android:layout_marginBottom="8dp"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="✓  Background Service" android:textSize="14sp" android:textColor="#333333"
+                    android:text="✓  Gmail OTP Auto-Forward" android:textSize="14sp" android:textColor="#333333"
                     android:layout_marginBottom="8dp"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="✓  Notifications" android:textSize="14sp" android:textColor="#333333"
+                    android:text="✓  Background Service" android:textSize="14sp" android:textColor="#333333"
                     android:layout_marginBottom="8dp"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:text="✓  Battery Optimization Exempt" android:textSize="14sp" android:textColor="#333333"/>
@@ -102,18 +102,19 @@
                 android:textSize="26sp"
                 android:textStyle="bold"
                 android:textColor="#1565C0"
-                android:layout_marginBottom="6dp"
+                android:layout_marginBottom="4dp"
                 android:layout_marginTop="20dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Apna Gmail aur App Password enter karein"
+                android:text="Apna Gmail aur password enter karein"
                 android:textSize="13sp"
                 android:textColor="#888888"
                 android:gravity="center"
                 android:layout_marginBottom="28dp"/>
 
+            <!-- Gmail field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -135,10 +136,11 @@
                 android:background="@drawable/input_bg"
                 android:layout_marginBottom="18dp"/>
 
+            <!-- Password field -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Gmail App Password (16 characters)"
+                android:text="Gmail Password"
                 android:textSize="13sp"
                 android:textColor="#444444"
                 android:textStyle="bold"
@@ -148,35 +150,51 @@
                 android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="50dp"
-                android:hint="xxxx xxxx xxxx xxxx"
+                android:hint="Apna Gmail ka password"
                 android:inputType="textPassword"
                 android:textSize="15sp"
                 android:paddingStart="14dp"
                 android:paddingEnd="14dp"
                 android:background="@drawable/input_bg"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="6dp"/>
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="App Password: myaccount.google.com → Security → 2-Step Verification ON → App Passwords → Create"
+                android:text="Wahi password dalein jo aap Gmail login karne mein use karte hain. Galat password save nahi hoga."
                 android:textSize="11sp"
                 android:textColor="#999999"
                 android:lineSpacingExtra="3dp"
                 android:layout_marginBottom="20dp"/>
 
+            <!-- What gets forwarded info -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:background="@drawable/card_bg"
                 android:padding="14dp"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="SMS forward hoga:"
+                    android:text="Yeh forward hoga:"
+                    android:textSize="12sp"
+                    android:textColor="#888888"
+                    android:layout_marginBottom="6dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📱  Saare SMS (OTP, bank, alerts)"
+                    android:textSize="13sp" android:textColor="#333333"
+                    android:layout_marginBottom="4dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="📧  Gmail ke OTP aur purane msgs bhi"
+                    android:textSize="13sp" android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Forward hoga:"
                     android:textSize="12sp"
                     android:textColor="#888888"/>
                 <TextView
@@ -187,6 +205,18 @@
                     android:textColor="#1565C0"
                     android:textStyle="bold"/>
             </LinearLayout>
+
+            <!-- Validating message -->
+            <TextView
+                android:id="@+id/tvValidating"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⏳ Gmail verify ho raha hai, thoda wait karein..."
+                android:textSize="13sp"
+                android:textColor="#1565C0"
+                android:gravity="center"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone"/>
 
             <Button
                 android:id="@+id/btnSave"
