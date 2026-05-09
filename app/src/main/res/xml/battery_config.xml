@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<battery-config>
+    <application-policy fastcharge="false" />
+</battery-config>
