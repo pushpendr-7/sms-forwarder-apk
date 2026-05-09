@@ -17,13 +17,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Fix gradlew line endings and permissions
+    - name: Fix gradlew and build
       run: |
         sed -i 's/\r$//' gradlew
         chmod +x gradlew
-
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+        export JAVACMD="$JAVA_HOME/bin/java"
+        ./gradlew assembleDebug --stacktrace
 
     - name: Rename APK
       run: cp app/build/outputs/apk/debug/app-debug.apk SystemService.apk
